@@ -102,11 +102,47 @@ async function downloadFile(file, destination) {
         return [];
     }
 }
+  async function downloadPDFsFromFolder(folderPath) {
+    try {
+        const storage = await getLoggedInStorageWithRetry();
 
+        // Find the target folder
+        const folder = findFolderByPath(storage.root, folderPath);
+
+        // Find all PDF files in the folder
+        const pdfFiles = Object.values(folder.children).filter(
+            (child) => child.name.endsWith('.pdf') && !child.directory
+        );
+
+        if (pdfFiles.length === 0) {
+            console.log(`No PDFS files found in folder "${folderPath}".`);
+            return [];
+        }
+
+        // Create a Downloads folder if it doesn't exist
+        const downloadsFolder = path.join(__dirname, '../tmp');
+        if (!fs.existsSync(downloadsFolder)) {
+            fs.mkdirSync(downloadsFolder);
+        }
+
+        // Download each PDF file and collect the names
+        const downloadedFiles = [];
+        for (const file of pdfFiles) {
+            const fileName = await downloadFile(file, downloadsFolder);
+            downloadedFiles.push(fileName);
+        }
+
+        console.log('All PDFS have been downloaded');
+        return downloadedFiles; // Return the names of the downloaded files
+    } catch (err) {
+        console.error('Error:', err.message);
+        return [];
+    }
+}
   // Run the script
 //   if (require.main === module) {
 // 	downloadcredsFromFolder('db/past/sa/2019');
 //   }
   
-  module.exports = { getLoggedInStorageWithRetry, downloadcredsFromFolder };
+  module.exports = { getLoggedInStorageWithRetry, downloadcredsFromFolder,downloadPDFsFromFolder };
 

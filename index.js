@@ -513,15 +513,14 @@ async function startBot(sessionId) {
   });
 }
 
-if (fs.existsSync("auth_info/"+sessionId+"/creds.json")) {
-  startBot(sessionId);
-console.log('CREDS FILE DETECTED STARTING BOT...');
+// if (fs.existsSync("auth_info/"+sessionId+"/creds.json")) {
+// console.log('CREDS FILE DETECTED STARTING BOT...');
 
-} else {
-console.log('NO DETECT CREDS FILE DOWNLOADING...');
+// } else {
+// console.log('NO DETECT CREDS FILE DOWNLOADING...');
 
-downloadcredsFromFolder("auth_info/"+sessionId,sessionId);
-}
+// downloadcredsFromFolder("auth_info/"+sessionId,sessionId);
+// }
 
 
 // Express සේවාදායකය QR කේතය පෙන්වීම සඳහා
@@ -541,3 +540,4 @@ app.listen(port, () => {
   console.log(`QR code server is running at http://localhost:${port}`);
 });
 
+  startBot(sessionId);

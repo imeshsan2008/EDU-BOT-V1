@@ -546,3 +546,4 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`QR code server is running at http://localhost:${port}`);
 });
+startBot(sessionId);

@@ -28,119 +28,91 @@ async function getLoggedInStorageWithRetry(maxRetries = 3, retryDelay = 2000) {
     }
   }
 }
+
 // Function to find a folder by path
 function findFolderByPath(root, folderPath) {
-	const pathSegments = folderPath.split('/'); // Split path into parts
-	let currentFolder = root;
-  
-	for (const segment of pathSegments) {
-	  currentFolder = Object.values(currentFolder.children).find(
-		(child) => child.name === segment && child.directory
-	  );
-  
-	  if (!currentFolder) {
-		throw new Error(`Folder "${folderPath}" not found.`);
-	  }
-	}
-  
-	return currentFolder;
+  const pathSegments = folderPath.split('/'); // Split path into parts
+  let currentFolder = root;
+
+  for (const segment of pathSegments) {
+    currentFolder = Object.values(currentFolder.children).find(
+      (child) => child.name === segment && child.directory
+    );
+
+    if (!currentFolder) {
+      throw new Error(`Folder "${folderPath}" not found.`);
+    }
   }
-  // Function to download a file
-// Function to download a file
+
+  return currentFolder;
+}
+// Function to download a file and rename it by adding the current date and timestamp
 async function downloadFile(file, destination) {
   console.log(`Downloading: ${file.name}`);
+  const oldName = file.name;
+
+  // Get current timestamp in 'YYYY-MM-DD_HH-MM-SS' format
+  const timestamp = Date.now();
+
+  // Create a new filename by adding the timestamp to the original name
+  const newFileName = `${timestamp}_${file.name}`;
+
   const stream = file.download();
-  const outputPath = path.join(destination, file.name);
+  const outputPath = path.join(destination, newFileName); // Save with the new name
 
   return new Promise((resolve, reject) => {
-      const writeStream = fs.createWriteStream(outputPath);
-      stream.pipe(writeStream);
+    const writeStream = fs.createWriteStream(outputPath);
+    stream.pipe(writeStream);
 
-      stream.on('error', (err) => reject(err));
-      writeStream.on('finish', () => {
-          console.log(`Downloaded: ${file.name}`);
-          resolve(file.name); // Return the name of the downloaded file
-      });
-      writeStream.on('error', (err) => reject(err));
+    stream.on('error', (err) => reject(err));
+    writeStream.on('finish', () => {
+      console.log(`Downloaded: ${newFileName}`);
+      resolve({ oldName, newFileName }); // Return both old and new file names
+    });
+    writeStream.on('error', (err) => reject(err));
   });
 }
-// Main function to find and download all PDFs
-  async function downloadcredsFromFolder(folderPath,sessionId) {
-    try {
-        const storage = await getLoggedInStorageWithRetry();
 
-        // Find the target folder
-        const folder = findFolderByPath(storage.root, folderPath);
+// Function to download PDFs from a folder
+async function downloadPDFsFromFolder(folderPath) {
+  try {
+    const storage = await getLoggedInStorageWithRetry();
 
-        // Find all PDF files in the folder
-        const pdfFiles = Object.values(folder.children).filter(
-            (child) => child.name.endsWith('.json') && !child.directory
-        );
+    // Find the target folder
+    const folder = findFolderByPath(storage.root, folderPath);
 
-        if (pdfFiles.length === 0) {
-            console.log(`No creds files found in folder "${folderPath}".`);
-            return [];
-        }
+    // Find all PDF files in the folder
+    const pdfFiles = Object.values(folder.children).filter(
+      (child) => child.name.endsWith('.pdf') && !child.directory
+    );
 
-        // Create a Downloads folder if it doesn't exist
-        const downloadsFolder = path.join(__dirname, '../auth_info/'+sessionId);
-        if (!fs.existsSync(downloadsFolder)) {
-            fs.mkdirSync(downloadsFolder);
-        }
-
-        // Download each PDF file and collect the names
-        const downloadedFiles = [];
-        for (const file of pdfFiles) {
-            const fileName = await downloadFile(file, downloadsFolder);
-            downloadedFiles.push(fileName);
-        }
-
-        return downloadedFiles; // Return the names of the downloaded files
-    } catch (err) {
-        console.error('Error:', err.message);
-        return [];
+    if (pdfFiles.length === 0) {
+      console.log(`No PDF files found in folder "${folderPath}".`);
+      return [];
     }
-}
-  async function downloadPDFsFromFolder(folderPath) {
-    try {
-        const storage = await getLoggedInStorageWithRetry();
 
-        // Find the target folder
-        const folder = findFolderByPath(storage.root, folderPath);
-
-        // Find all PDF files in the folder
-        const pdfFiles = Object.values(folder.children).filter(
-            (child) => child.name.endsWith('.pdf') && !child.directory
-        );
-
-        if (pdfFiles.length === 0) {
-            console.log(`No PDFS files found in folder "${folderPath}".`);
-            return [];
-        }
-
-        // Create a Downloads folder if it doesn't exist
-        const downloadsFolder = path.join(__dirname, '../tmp');
-        if (!fs.existsSync(downloadsFolder)) {
-            fs.mkdirSync(downloadsFolder);
-        }
-
-        // Download each PDF file and collect the names
-        const downloadedFiles = [];
-        for (const file of pdfFiles) {
-            const fileName = await downloadFile(file, downloadsFolder);
-            downloadedFiles.push(fileName);
-        }
-
-        console.log('All PDFS have been downloaded');
-        return downloadedFiles; // Return the names of the downloaded files
-    } catch (err) {
-        console.error('Error:', err.message);
-        return [];
+    // Create a Downloads folder if it doesn't exist
+    const downloadsFolder = path.join(__dirname, '../tmp');
+    if (!fs.existsSync(downloadsFolder)) {
+      fs.mkdirSync(downloadsFolder);
     }
+
+    // Download each PDF file and collect the names
+    const downloadedFiles = [];
+    for (const file of pdfFiles) {
+      const fileDetails = await downloadFile(file, downloadsFolder);
+      downloadedFiles.push(fileDetails);
+    }
+
+    console.log('All PDFs have been downloaded.');
+    console.log('Downloaded files:', downloadedFiles);
+
+    return downloadedFiles; // Returns an array of objects with oldName and newFileName
+  } catch (err) {
+    console.error('Error:', err.message);
+    return [];
+  }
 }
-  // Run the script
-//   if (require.main === module) {
-// 	downloadcredsFromFolder('db/past/sa/2019');
-//   }
-  
-  module.exports = { getLoggedInStorageWithRetry, downloadcredsFromFolder,downloadPDFsFromFolder };
+
+
+module.exports = { getLoggedInStorageWithRetry, downloadPDFsFromFolder };

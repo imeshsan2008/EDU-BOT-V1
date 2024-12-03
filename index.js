@@ -92,35 +92,29 @@ async function sendPDFFromMega(sock, sender, folderPath,  subject, year) {
 
 async function handleMenuCommand(sock, messageKey, sender, menuMsgId,pushname) {
   await addReaction(sock, messageKey, "📃");
-
   const menuText = `
-  👋 *HELLO ${pushname}!*  
+👋 *HELLO ${pushname}!*
+
 ╭─🌟 「 *COMMANDS PANEL* 」 🌟  
-│ 💻 **RAM USAGE** - ${RAM}
-│ ⏱️ **RUNTIME** -  
+│ 💻 *RAM USAGE* - ${RAM}  
+│ ⏱️ *RUNTIME* -   
 ╰──────────●●►  
+
 ╭──────────●●►  
-│ 📜 **  
-│   ────────────────  
-│    
-│ 👨‍💻 *Developer:*  
-│    💻 *Imesh Sandeepa*  
-│
-│ 📱 *WhatsApp:*  
-│    📲 *+94768902513*  
-│
-│ 📧 *Email:*
-│    ✉️ *imeshsan2008@gmail.com*  
-│
-│ 🌐 *Website:* 
-│    🔗 *https://imeshsan2008.github.io/*  
-│
-│ 🚀 *Let me know how I can assist you today!**  
-│
+│ 📜 *Menu List*  
+│ ────────────────  
+│   
+│ - *${PREFIX}alive* - Check if the Bot is Alive  
+│ - *${PREFIX}text* - Download O/L Textbooks  
+│ - *${PREFIX}past* - Download 5 Years of O/L Past Papers  
+│  
 ╰───────────●●►  
-  
+
 ${"> " + bot_name}
 `;
+
+
+  
 const imageMessage = {
   image: { url: menuimg },  // Provide the URL of the image you want to send
   caption: menuText, // Add the menu text as the caption for the image
@@ -138,11 +132,11 @@ async function alivemessage(sock, messageKey, sender, pushname) {
   const AliveText = `
   👋 *HELLO ${pushname}!*  
 ╭─🌟 「 *COMMANDS PANEL* 」 🌟  
-│ 💻 **RAM USAGE** - ${RAM}  
-│ ⏱️ **RUNTIME** -  
+│ 💻 *RAM USAGE* - ${RAM}  
+│ ⏱️ *RUNTIME* -  
 ╰──────────●●►  
 ╭──────────●●►  
-│ 📜 **  
+│ 📜 *Contact Information & Developer Profile*  
 │   ────────────────  
 │    
 │ 👨‍💻 *Developer:*  
@@ -525,15 +519,15 @@ async function startBot(sessionId) {
   });
 }
 
-if (fs.existsSync("auth_info/"+sessionId+"/creds.json")) {
-  startBot(sessionId);
-console.log('CREDS FILE DETECTED STARTING BOT...');
+// if (fs.existsSync("auth_info/"+sessionId+"/creds.json")) {
+//   startBot(sessionId);
+// console.log('CREDS FILE DETECTED STARTING BOT...');
 
-} else {
-console.log('NO DETECT CREDS FILE DOWNLOADING...');
+// } else {
+// console.log('NO DETECT CREDS FILE DOWNLOADING...');
 
-downloadcredsFromFolder("auth_info/"+sessionId,sessionId);
-}
+// downloadcredsFromFolder("auth_info/"+sessionId,sessionId);
+// }
 
 
 // Express සේවාදායකය QR කේතය පෙන්වීම සඳහා
@@ -552,4 +546,3 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`QR code server is running at http://localhost:${port}`);
 });
-

@@ -12,6 +12,7 @@ const menuimg = "https://i.ibb.co/cgBMdb7/image.png";
 const pastRequests = new Map(); // To track user navigation through menus
 const menuRequests = new Map();
 const textbookRequests = new Map(); // To track user navigation through menus
+const os = require('os');
 
 const { downloadPDFsFromFolder,downloadcredsFromFolder } = require('./mega');
 const { checkPrime } = require("crypto");
@@ -22,7 +23,16 @@ const { checkPrime } = require("crypto");
 let qrCodeURL = "https://i.ibb.co/cgBMdb7/image.png";
 
 const serviceName = process.env.SERVICE_NAME;
-const RAM = process.env.RAM;
+// Get total memory
+const totalMemory = os.totalmem();
+
+// Get free memory
+const freeMemory = os.freemem();
+const usedMemory = totalMemory - freeMemory;
+const usedMemoryMB = (usedMemory / (1024 * 1024)).toFixed(2);
+
+const RAM = usedMemoryMB;
+console.log('RAM: ',RAM);
 
 let botSettings = {
   PREFIX: ".",
@@ -57,7 +67,9 @@ async function addReaction(sock, messageKey, reactionEmoji) {
 async function sendPDFFromMega(sock, sender, folderPath,  subject, year) {
   try {
   
-    const uploadingText = `📤 Uploading ${subject} - ${year}, please wait... \n> ${bot_name}`;
+    const uploadingText = `📤 Uploading ${subject} - ${year}, please wait... 
+    
+  ${"> " + bot_name + " | O/L Past Pepars Downloader"}`;
     const downloadedFiles = await downloadPDFsFromFolder(folderPath);
 
 
@@ -67,19 +79,20 @@ async function sendPDFFromMega(sock, sender, folderPath,  subject, year) {
       throw new Error("No PDF files were downloaded.");
     }
 
-    for (const filePath of downloadedFiles) {
-      const fullPath = path.join("tmp", filePath);
+    for (const file of downloadedFiles) {
+      const fullPath = path.join("tmp", file.newFileName);
       const fileBuffer = fs.readFileSync(fullPath);
 
       await sock.sendMessage(sender, {
         document: fileBuffer,
         mimetype: "application/pdf",
-        fileName: path.basename(fullPath),
+        fileName: file.oldName,
         caption: `> ${bot_name}`,
       });
+    fs.unlinkSync(fullPath);
 
-      fs.unlinkSync(fullPath);
     }
+    
 
     console.log("PDF files sent successfully.");
   } catch (error) {
@@ -90,12 +103,51 @@ async function sendPDFFromMega(sock, sender, folderPath,  subject, year) {
   }
 }
 
+async function sendtextbookfromMega(sock, sender, folderPath,  subject) {
+  try {
+  
+    const uploadingText = `📤 Uploading ${subject}, please wait... 
+    
+  ${"> " + bot_name + " | O/L Text Books Downloader"}`;
+    const downloadedFiles = await downloadPDFsFromFolder(folderPath);
+
+
+    await sock.sendMessage(sender, { text: uploadingText });
+
+    if (downloadedFiles.length === 0) {
+      throw new Error("No PDF files were downloaded.");
+    }
+
+    for (const file of downloadedFiles) {
+      const fullPath = path.join("tmp", file.newFileName);
+      const fileBuffer = fs.readFileSync(fullPath);
+
+      await sock.sendMessage(sender, {
+        document: fileBuffer,
+        mimetype: "application/pdf",
+        fileName: file.oldName,
+        caption: `> ${bot_name}`,
+      });
+      
+      fs.unlinkSync(fullPath);
+
+    }
+    
+
+    console.log("PDF files sent successfully.");
+  } catch (error) {
+    console.error("Error in sendPDFFromMega:", error.message);
+    await sock.sendMessage(sender, {
+      text: `❌ An error occurred while processing your request: ${error.message}\n> ${bot_name}`,
+    });
+  }
+}
 async function handleMenuCommand(sock, messageKey, sender, menuMsgId,pushname) {
   await addReaction(sock, messageKey, "📃");
   const menuText = `
 👋 *HELLO ${pushname}!*
 
-╭─🌟 「 *COMMANDS PANEL* 」 🌟  
+╭─🌟 「 *System Info* 」 🌟  
 │ 💻 *RAM USAGE* - ${RAM}  
 │ ⏱️ *RUNTIME* -   
 ╰──────────●●►  
@@ -131,7 +183,7 @@ async function alivemessage(sock, messageKey, sender, pushname) {
   await addReaction(sock, messageKey, "📃");
   const AliveText = `
   👋 *HELLO ${pushname}!*  
-╭─🌟 「 *COMMANDS PANEL* 」 🌟  
+╭─🌟 「 *System Info* 」 🌟  
 │ 💻 *RAM USAGE* - ${RAM}  
 │ ⏱️ *RUNTIME* -  
 ╰──────────●●►  
@@ -151,7 +203,8 @@ async function alivemessage(sock, messageKey, sender, pushname) {
 │ 🌐 *Website:* 
 │    🔗 *https://imeshsan2008.github.io/*  
 │
-│ 🚀 *Let me know how I can assist you today!**  
+│ 🚀 *.menu to access the command panel*
+|  
 │
 ╰───────────●●►  
   
@@ -204,7 +257,9 @@ async function sendSubjectMenu(sock, sender, messageKey) {
 │
 │ *Reply to number or .past <number>*
 ╰───────────────●●►
-${"> " + bot_name + " | O/L Past paper Downloader"}`;
+
+${"> " + bot_name + " | O/L Past Paper Downloader"}`;
+
 const imageMessage = {
   image: { url: menuimg },  // Provide the URL of the image you want to send
   caption: subjectMenu, // Add the menu text as the caption for the image
@@ -254,6 +309,7 @@ async function sendtextbooksSubjectMenu(sock, sender, messageKey) {
 │
 │ *Reply to number or .past <number>*
 ╰───────────────●●►
+
 ${"> " + bot_name + " | O/L Text Books Downloader"}`;
 const imageMessage = {
   image: { url: menuimg },  // Provide the URL of the image you want to send
@@ -276,7 +332,8 @@ async function sendYearMenu(sock, sender, subject) {
 │ 4. 2020
 │ 5. 2019
 ╰───────────────●●►
-${"> " + bot_name + " | O/L Past paper Downloader"}`;
+
+${"> " + bot_name + " | O/L Past Paper Downloader"}`;
 
   const sentMessage = await sock.sendMessage(sender, {
     text: yearMenu,
@@ -293,7 +350,7 @@ async function fetchPastPapers(sock, sender, subject, year) {
  
   const downloadingmessage =`📥 Downloading ${subject} - ${year}, please wait... 
 
-  ${"> " + bot_name + " | O/L Text Books Downloader"}`;
+  ${"> " + bot_name + " | O/L Past Paper Downloader"}`;
 
 
   await sock.sendMessage(sender, { text:downloadingmessage});
@@ -316,8 +373,7 @@ async function fetchtextbooks(sock, sender, textboook) {
   await sock.sendMessage(sender, { text:downloadingmessage});
 
 
-
-    await sendPDFFromMega(sock, sender, folderPath,textboook);
+    await sendtextbookfromMega(sock, sender, folderPath,textboook);
     
 }
 // බොට් ආරම්භ කිරීමේ විධානය
@@ -468,7 +524,7 @@ async function startBot(sessionId) {
           });
         }
 
-        await sendYearMenu(sock, sender, textbook);
+        await fetchtextbooks(sock, sender, textbook);
       }
        else if (
         request?.stage === "subject" &&
@@ -546,4 +602,5 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`QR code server is running at http://localhost:${port}`);
 });
+
 startBot(sessionId);

@@ -22,6 +22,8 @@ const { checkPrime } = require("crypto");
 let qrCodeURL = "https://i.ibb.co/cgBMdb7/image.png";
 
 const serviceName = process.env.SERVICE_NAME;
+const RAM = process.env.RAM;
+
 let botSettings = {
   PREFIX: ".",
   pastEnabled:true,
@@ -94,11 +96,11 @@ async function handleMenuCommand(sock, messageKey, sender, menuMsgId,pushname) {
   const menuText = `
   👋 *HELLO ${pushname}!*  
 ╭─🌟 「 *COMMANDS PANEL* 」 🌟  
-│ 💻 **RAM USAGE** -  
+│ 💻 **RAM USAGE** - ${RAM}
 │ ⏱️ **RUNTIME** -  
 ╰──────────●●►  
 ╭──────────●●►  
-│ 📜 *LIST OF MENU*  
+│ 📜 **  
 │   ────────────────  
 │    
 │ 👨‍💻 *Developer:*  
@@ -134,25 +136,33 @@ const sentmessage = await sock.sendMessage(sender, imageMessage); // Directly pa
 async function alivemessage(sock, messageKey, sender, pushname) {
   await addReaction(sock, messageKey, "📃");
   const AliveText = `
+  👋 *HELLO ${pushname}!*  
+╭─🌟 「 *COMMANDS PANEL* 」 🌟  
+│ 💻 **RAM USAGE** - ${RAM}  
+│ ⏱️ **RUNTIME** -  
+╰──────────●●►  
+╭──────────●●►  
+│ 📜 **  
+│   ────────────────  
+│    
+│ 👨‍💻 *Developer:*  
+│    💻 *Imesh Sandeepa*  
+│
+│ 📱 *WhatsApp:*  
+│    📲 *+94768902513*  
+│
+│ 📧 *Email:*
+│    ✉️ *imeshsan2008@gmail.com*  
+│
+│ 🌐 *Website:* 
+│    🔗 *https://imeshsan2008.github.io/*  
+│
+│ 🚀 *Let me know how I can assist you today!**  
+│
+╰───────────●●►  
   
-🌟 *Hello, ${pushname}!* 🌟
-
-👨‍💻 *Developer:*  
-    💻 *Imesh Sandeepa*  
-
-📱 *WhatsApp:*  
-    📲 *+94768902513*  
-
-📧 *Email:**  
-    ✉️ *imeshsan2008@gmail.com*  
-
-🌐 *Website:**  
-    🔗 *https://imeshsan2008.github.io/*  
-
-🚀 *.menu - List of Bot Commands*
-
-
-${"> " + bot_name}`;
+${"> " + bot_name}
+`;
   
 const imageMessage = {
   image: { url: menuimg },  // Provide the URL of the image you want to send
@@ -288,7 +298,8 @@ async function fetchPastPapers(sock, sender, subject, year) {
   const folderPath = `db/past/${subject}/${year}`;
  
   const downloadingmessage =`📥 Downloading ${subject} - ${year}, please wait... 
-  ${"> " + bot_name + " | O/L Past Paper Downloader"}`;
+
+  ${"> " + bot_name + " | O/L Text Books Downloader"}`;
 
 
   await sock.sendMessage(sender, { text:downloadingmessage});
@@ -304,6 +315,7 @@ async function fetchtextbooks(sock, sender, textboook) {
   const folderPath = `db/textbooks/${textboook}`;
  
   const downloadingmessage =`📥 Downloading ${textboook}, please wait... 
+  
   ${"> " + bot_name + " | O/L Text Books Downloader"}`;
 
 
@@ -513,14 +525,15 @@ async function startBot(sessionId) {
   });
 }
 
-// if (fs.existsSync("auth_info/"+sessionId+"/creds.json")) {
-// console.log('CREDS FILE DETECTED STARTING BOT...');
+if (fs.existsSync("auth_info/"+sessionId+"/creds.json")) {
+  startBot(sessionId);
+console.log('CREDS FILE DETECTED STARTING BOT...');
 
-// } else {
-// console.log('NO DETECT CREDS FILE DOWNLOADING...');
+} else {
+console.log('NO DETECT CREDS FILE DOWNLOADING...');
 
-// downloadcredsFromFolder("auth_info/"+sessionId,sessionId);
-// }
+downloadcredsFromFolder("auth_info/"+sessionId,sessionId);
+}
 
 
 // Express සේවාදායකය QR කේතය පෙන්වීම සඳහා
@@ -540,4 +553,3 @@ app.listen(port, () => {
   console.log(`QR code server is running at http://localhost:${port}`);
 });
 
-  startBot(sessionId);

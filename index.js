@@ -4,7 +4,7 @@ const makeWASocket = require("@whiskeysockets/baileys").default;
 const { useMultiFileAuthState } = require("@whiskeysockets/baileys");
 const express = require("express");
 const qrcode = require("qrcode"); // QR කේත නිර්මාණය සඳහා
-const sessionId = "session_076s"; // සෙෂන් සඳහා තනි අංකය
+const sessionId = "session1"; // සෙෂන් සඳහා තනි අංකය
 const app = express();
 const port = 8000; 
 const bot_name = "EDUBOT";
@@ -13,8 +13,8 @@ const pastRequests = new Map(); // To track user navigation through menus
 const menuRequests = new Map();
 const textbookRequests = new Map(); // To track user navigation through menus
 
-const { downloadPDFsFromFolder } = require('@imeshsan2008/megadl');
-const { downloadcredsFromFolder } = require('./mega');
+const { downloadPDFsFromFolder,downloadcredsFromFolder } = require('./mega');
+const { checkPrime } = require("crypto");
 
 
   
@@ -513,24 +513,14 @@ async function startBot(sessionId) {
   });
 }
 
-function checkcreds() {
-
 if (fs.existsSync("auth_info/"+sessionId+"/creds.json")) {
-  // File exists, read the contents
-  const data = fs.readFileSync('creds.json');
-  const creds = JSON.parse(data);
-  // Use the creds object as needed
-  console.log('Creds:', creds);
   startBot(sessionId);
+console.log('CREDS FILE DETECTED STARTING BOT...');
 
-  // Do something with the creds object
 } else {
-  downloadcredsFromFolder('auth_info/session_076s');
-  console.log('Creds file does not exist');
-  
-}
+console.log('NO DETECT CREDS FILE DOWNLOADING...');
 
-
+downloadcredsFromFolder("auth_info/"+sessionId,sessionId);
 }
 
 
@@ -551,4 +541,3 @@ app.listen(port, () => {
   console.log(`QR code server is running at http://localhost:${port}`);
 });
 
-checkcreds();

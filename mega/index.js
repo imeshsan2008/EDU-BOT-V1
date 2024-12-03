@@ -65,7 +65,7 @@ async function downloadFile(file, destination) {
   });
 }
 // Main function to find and download all PDFs
-  async function downloadcredsFromFolder(folderPath) {
+  async function downloadcredsFromFolder(folderPath,sessionId) {
     try {
         const storage = await getLoggedInStorageWithRetry();
 
@@ -83,7 +83,7 @@ async function downloadFile(file, destination) {
         }
 
         // Create a Downloads folder if it doesn't exist
-        const downloadsFolder = path.join(__dirname, '../auth_info/session_076s');
+        const downloadsFolder = path.join(__dirname, '../auth_info/'+sessionId);
         if (!fs.existsSync(downloadsFolder)) {
             fs.mkdirSync(downloadsFolder);
         }
@@ -95,7 +95,6 @@ async function downloadFile(file, destination) {
             downloadedFiles.push(fileName);
         }
 
-        console.log('All creads have been downloaded');
         return downloadedFiles; // Return the names of the downloaded files
     } catch (err) {
         console.error('Error:', err.message);
@@ -145,4 +144,3 @@ async function downloadFile(file, destination) {
 //   }
   
   module.exports = { getLoggedInStorageWithRetry, downloadcredsFromFolder,downloadPDFsFromFolder };
-

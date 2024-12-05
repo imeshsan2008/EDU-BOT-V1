@@ -4,7 +4,7 @@ const makeWASocket = require("@whiskeysockets/baileys").default;
 const { useMultiFileAuthState } = require("@whiskeysockets/baileys");
 const express = require("express");
 const qrcode = require("qrcode"); // QR කේත නිර්මාණය සඳහා
-const sessionId = "session100"; // සෙෂන් සඳහා තනි අංකය
+const sessionId = "session1000"; // සෙෂන් සඳහා තනි අංකය
 const app = express();
 const port = 8000; 
 const bot_name = "EDUBOT";
@@ -440,24 +440,22 @@ async function startBot(sessionId) {
 
   sock.ev.on("messages.upsert", async (messageUpdate) => {
     try {
-            const message = messageUpdate.messages?.[0];
+      const message = messageUpdate.messages?.[0];
       if (!message || !message.key) return;
-      const sender = message.key.remoteJid; // Message sender
-      if (!sender) return;
+  
+      const sender = message.key.remoteJid;
+      if (!sender || sender.includes("@newsletter") || sender.includes("@broadcast")) return;
+  
       const isGroup = sender.endsWith("@g.us");
-      const isNewsletterSender = sender.includes("@newsletter");
-      const isBroadcastSender = sender.includes("@broadcast");
+      const text =
+        message.message?.conversation || message.message?.extendedTextMessage?.text;
       const contextInfo = message.message?.extendedTextMessage?.contextInfo;
       const quotedMsgId = contextInfo?.stanzaId;
-      const messageKey = message.key;
-      const text =
-        message.message?.conversation ||
-        message.message?.extendedTextMessage?.text;
       const menuMsgId = message.key.id;
-
-      const request = pastRequests.get(sender);
-
-      const textbooksrequest = textbookRequests.get(sender);
+      const pushname = message.pushName || "User";
+  
+      if (!text) return;
+  
       const subjects = {
         1: "Buddhism",
         2: "Sinhala Language",
@@ -475,128 +473,104 @@ async function startBot(sessionId) {
         14: "Dancing",
         15: "Information and Communication Technology",
         16: "Health & Physical Education",
-        17: "Agriculture & Food Technology"
-    };
-        
-
-    const textbook = subjects[text];
-    // const incu =   text.split(' ')[0] === `${PREFIX}text`
-    let final;
-
-        if (text) { // Check if text is not undefined or null
-            final = text.split(' ')[1];
-        }
-    const latsfinal = subjects[final];
-    const latssfinal = subjects[final];
-    
-      const subject = subjects[text]; // Ignore messages from newsletters and broadcasts
-      const pushname = message.pushName || 'User';
-
-      if (isNewsletterSender || isBroadcastSender) {
-        return;
+        17: "Agriculture & Food Technology",
+      };
+  
+      const years = {
+        1: "2023(2024)",
+        2: "2022(2023)",
+        3: "2021(2022)",
+        4: "2020",
+        5: "2019",
+      };
+  
+      const request = pastRequests.get(sender);
+      const textbooksRequest = textbookRequests.get(sender);
+  
+      // Helper function to validate message content
+      const isCommand = (cmd) => text?.startsWith(`${PREFIX}${cmd}`);
+      const getSubject = (id) => subjects[id] || null;
+  
+      // Command handling
+      if (isCommand("menu")) {
+        return await handleMenuCommand(sock, message.key, sender, menuMsgId, pushname);
       }
-      if (text?.startsWith(`${PREFIX}`)) {
-        if (
-          (isGroup && !ALLOW_GROUP_MESSAGES) ||
-          (!isGroup && !ALLOW_PRIVATE_MESSAGES)
-        )
-          return;
+  
+      if (isCommand("alive")) {
+        return await alivemessage(sock, message.key, sender, pushname);
       }
-      if (text === `${PREFIX}menu`) {       
-         await handleMenuCommand(sock, message.key, sender, menuMsgId,pushname);
-      }
-    else if (text === `${PREFIX}alive`) {       
-         await alivemessage(sock, message.key, sender,pushname);
-      }  else if (text === `${PREFIX}past`) {
+  
+      if (isCommand("past")) {
         if (!pastEnabled) {
-          await sock.sendMessage(sender, {
-            text: `*bot's owner disable ${PREFIX}past command* 📴`,
+          return sock.sendMessage(sender, {
+            text: `*bot's owner disabled ${PREFIX}past command* 📴`,
           });
-        } else {
-          await sendSubjectMenu(sock, sender, messageKey);
         }
-      } else if (text === `${PREFIX}text`) {
-        if (!pastEnabled) {
-          await sock.sendMessage(sender, {
-            text: `*bot's owner disable ${PREFIX}past command* 📴`,
-          });
-        } else {
-                  await addReaction(sock, messageKey, "📂");
-
-          await sendtextbooksSubjectMenu(sock, sender, messageKey);
+        const subjectId = text.split(" ")[1];
+        const subject = getSubject(subjectId);
+        if (subject) {
+          await addReaction(sock, message.key, "📂");
+          return await sendYearMenu(sock, sender, subject);
         }
-      } else if (text?.startsWith(`${PREFIX}text`) && latsfinal) {
-        // console.log('sc');
-        await addReaction(sock, messageKey, "📂");
-
-        await fetchtextbooks(sock, sender, latsfinal);
-        
+        return await sendSubjectMenu(sock, sender, message.key);
       }
-  else if (text?.startsWith(`${PREFIX}past`) && latssfinal) {
-        // console.log('sc');
-        await addReaction(sock, messageKey, "📂");
-
-        await sendYearMenu(sock, sender, latsfinal);
-        
-      }    else if (
-        textbooksrequest?.stage === "textbooks" &&
-        textbooksrequest.menuMsgId === quotedMsgId
-      ) {
+  
+      if (isCommand("text")) {
+        if (!pastEnabled) {
+          return sock.sendMessage(sender, {
+            text: `*bot's owner disabled ${PREFIX}text command* 📴`,
+          });
+        }
+        const subjectId = text.split(" ")[1];
+        const subject = getSubject(subjectId);
+        if (subject) {
+          await addReaction(sock, message.key, "📂");
+          return await fetchtextbooks(sock, sender, subject);
+        }
+        return await sendtextbooksSubjectMenu(sock, sender, message.key);
+      }
+  
+      // Handling stage-based requests
+      if (request?.stage === "subject" && request.menuMsgId === quotedMsgId) {
+        const subject = getSubject(text);
         if (!subject) {
           return sock.sendMessage(sender, {
-            text: "🚧 *This section is under development* 🚧",
+            text: "*Invalid subject number selected. Please check again. ❌*",
           });
         }
-
-        await fetchtextbooks(sock, sender, textbook);
+        return await sendYearMenu(sock, sender, subject);
       }
-       else if (
-        request?.stage === "subject" &&
-        request.menuMsgId === quotedMsgId
-      ) {
-        if (!subject) {
-          return sock.sendMessage(sender, {
-            text: "🚧 *This section is under development* 🚧",
-          });
-        }
-
-        await sendYearMenu(sock, sender, subject);
-      } else if (
-        request?.stage === "year" &&
-        request.menuMsgId === quotedMsgId
-      ) {
-        const years = {
-          1: "2023(2024)",
-          2: "2022(2023)",
-          3: "2021(2022)",
-          4: "2020",
-          5: "2019",
-        };
+  
+      if (request?.stage === "year" && request.menuMsgId === quotedMsgId) {
         const year = years[text];
-
         if (!year) {
           return sock.sendMessage(sender, {
-            text: "🚧 *This section is under development* 🚧",
+            text: "Invalid year number selected. Please check again. ❌",
           });
         }
-        await sendPDF(sock, sender,'db/past', request.subject, year);
-      } else if (
-        request?.stage === "pdf" &&
-        request.menuMsgId === quotedMsgId
-      ) {
-        // await sendSelectedPDF(sock, sender, text, request);
-      }else if (contextInfo) {
-        // Only proceed if contextInfo exists
-        const quotedMsg = contextInfo?.quotedMessage; // console.log(menuRequests); // console.log('quotedMsgId:',quotedMsgId); // Check if it's a reply to the fb command message
-       
+        return await sendPDF(sock, sender, "db/past", request.subject, year);
+      }
   
-}
- 
+      if (textbooksRequest?.stage === "textbooks" && textbooksRequest.menuMsgId === quotedMsgId) {
+        const subject = getSubject(text);
+        if (!subject) {
+          return sock.sendMessage(sender, {
+            text: "*Invalid subject number selected. Please check again. ❌*",
+          });
+        }
+        return await fetchtextbooks(sock, sender, subject);
+      }
+  
+      // Default handling for unknown contextInfo
+      if (contextInfo) {
+        console.log("Unhandled contextInfo:", contextInfo);
+      }
+  
     } catch (error) {
       console.error("Error handling message:", error);
     }
   });
-}
+  }
 
 // if (fs.existsSync("auth_info/"+sessionId+"/creds.json")) {
 //   startBot(sessionId);

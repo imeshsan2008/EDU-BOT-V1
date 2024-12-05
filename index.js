@@ -4,7 +4,7 @@ const makeWASocket = require("@whiskeysockets/baileys").default;
 const { useMultiFileAuthState } = require("@whiskeysockets/baileys");
 const express = require("express");
 const qrcode = require("qrcode"); // QR කේත නිර්මාණය සඳහා
-const sessionId = "session01"; // සෙෂන් සඳහා තනි අංකය
+const sessionId = "session10"; // සෙෂන් සඳහා තනි අංකය
 const app = express();
 const port = 8000; 
 const bot_name = "EDUBOT";
@@ -64,39 +64,48 @@ async function addReaction(sock, messageKey, reactionEmoji) {
 }
 
 
-async function sendPDFFromMega(sock, sender, folderPath,  subject, year) {
+async function sendPDF(sock, sender, folderPath, subject, year) {
   try {
-  
     const uploadingText = `📤 Uploading ${subject} - ${year}, please wait... 
+    ${"> " + bot_name + " | O/L Past Papers Downloader"}`;
     
-  ${"> " + bot_name + " | O/L Past Pepars Downloader"}`;
-    const downloadedFiles = await downloadPDFsFromFolder(folderPath);
+    const subjectYearFolder = path.join(folderPath, subject, year);
+    // console.log('subyear', subjectYearFolder);
 
+    // Check if the directory exists
+    if (!fs.existsSync(subjectYearFolder)) {
+      throw new Error("The specified folder does not exist.");
+    }
+
+    // List all PDF files in the directory
+    const filesInFolder = fs.readdirSync(subjectYearFolder).filter(file => file.endsWith('.pdf'));
 
     await sock.sendMessage(sender, { text: uploadingText });
 
-    if (downloadedFiles.length === 0) {
-      throw new Error("No PDF files were downloaded.");
+    if (filesInFolder.length === 0) {
+      throw new Error("No PDF files were found.");
     }
 
-    for (const file of downloadedFiles) {
-      const fullPath = path.join("tmp", file.newFileName);
+    // Send each PDF file
+    for (const file of filesInFolder) {
+      const fullPath = path.join(subjectYearFolder, file);
       const fileBuffer = fs.readFileSync(fullPath);
 
       await sock.sendMessage(sender, {
         document: fileBuffer,
         mimetype: "application/pdf",
-        fileName: file.oldName,
+        fileName: file,
         caption: `> ${bot_name}`,
       });
-    fs.unlinkSync(fullPath);
 
+      // Optionally delete the file after sending
+      // fs.unlinkSync(fullPath);
+       // Remove the file from the folder after sending
     }
-    
 
     console.log("PDF files sent successfully.");
   } catch (error) {
-    console.error("Error in sendPDFFromMega:", error.message);
+    console.error("Error in sendPDF:", error.message);
     await sock.sendMessage(sender, {
       text: `❌ An error occurred while processing your request: ${error.message}\n> ${bot_name}`,
     });
@@ -105,38 +114,46 @@ async function sendPDFFromMega(sock, sender, folderPath,  subject, year) {
 
 async function sendtextbookfromMega(sock, sender, folderPath,  subject) {
   try {
-  
     const uploadingText = `📤 Uploading ${subject}, please wait... 
+    ${"> " + bot_name + " | O/L Text Books Downloader"}`;
     
-  ${"> " + bot_name + " | O/L Text Books Downloader"}`;
-    const downloadedFiles = await downloadPDFsFromFolder(folderPath);
+    const subjectFolder = path.join(folderPath, subject);
+    // console.log('subyear', subjectYearFolder);
 
+    // Check if the directory exists
+    if (!fs.existsSync(subjectFolder)) {
+      throw new Error("The specified folder does not exist.");
+    }
+
+    // List all PDF files in the directory
+    const filesInFolder = fs.readdirSync(subjectFolder).filter(file => file.endsWith('.pdf'));
 
     await sock.sendMessage(sender, { text: uploadingText });
 
-    if (downloadedFiles.length === 0) {
-      throw new Error("No PDF files were downloaded.");
+    if (filesInFolder.length === 0) {
+      throw new Error("No PDF files were found.");
     }
 
-    for (const file of downloadedFiles) {
-      const fullPath = path.join("tmp", file.newFileName);
+    // Send each PDF file
+    for (const file of filesInFolder) {
+      const fullPath = path.join(subjectFolder, file);
       const fileBuffer = fs.readFileSync(fullPath);
 
       await sock.sendMessage(sender, {
         document: fileBuffer,
         mimetype: "application/pdf",
-        fileName: file.oldName,
+        fileName: file,
         caption: `> ${bot_name}`,
       });
-      
-      fs.unlinkSync(fullPath);
 
+      // Optionally delete the file after sending
+      // fs.unlinkSync(fullPath);
+       // Remove the file from the folder after sending
     }
-    
 
     console.log("PDF files sent successfully.");
   } catch (error) {
-    console.error("Error in sendPDFFromMega:", error.message);
+    console.error("Error in sendPDF:", error.message);
     await sock.sendMessage(sender, {
       text: `❌ An error occurred while processing your request: ${error.message}\n> ${bot_name}`,
     });
@@ -232,27 +249,31 @@ async function sendSubjectMenu(sock, sender, messageKey) {
 │-----------------
 │ 1. Buddhism
 │ 2. Sinhala Language
-│ 3. Mathematics
-│ 4. English Language
-│ 5. Science
-│ 6. History
+| 3. Sinhala Literary
+│ 4. Mathematics
+│ 5. English Language
+│ 6. Science
+│ 7. History
 │
 │*First Group Subject*
 │-----------------
-│ 7. Business & Accounting Studies
-│ 8.Citizenship Education
-│ 
+│  8. Business & Accounting Studies
+│  9. Citizenship Education
+| 10.Communication & Media Studies
+|
 │*Second Group Subject*
 │-----------------
-│ 9. Art 
-│ 10. Drama
-│ 11. Music
-│ 12. Dancing
+│ 11. Art 
+│ 12. Drama
+│ 13. Music
+│ 14. Dancing
 │
 │*Third Group Subject*
 │-----------------
-│ 13. Information and Communication Technology 
-│ 14. Health & Physical Education
+│ 15. Information and Communication Technology 
+│ 16. Health & Physical Education
+| 17. Agriculture & Food Technology
+|  
 │
 │
 │ *Reply to number or .past <number>*
@@ -284,29 +305,25 @@ async function sendtextbooksSubjectMenu(sock, sender, messageKey) {
 │-----------------
 │ 1. Buddhism
 │ 2. Sinhala Language
-│ 3. Mathematics
-│ 4. English Language
-│ 5. Science
-│ 6. History
+| 3. Sinhala Literary
+│ 4. Mathematics
+│ 5. English Language
+│ 6. Science
+│ 7. History
 │
 │*First Group Subject*
 │-----------------
-│ 7. Business & Accounting Studies
-│ 8.Citizenship Education
-│ 
-│*Second Group Subject*
-│-----------------
-│ 9. Art 
-│ 10. Drama
-│ 11. Music
-│ 12. Dancing
+│ 8. Business & Accounting Studies
+│ 9. Citizenship Education
+| 10. Communication & Media Studies
 │
 │*Third Group Subject*
 │-----------------
-│ 13. Information and Communication Technology 
-│ 14. Health & Physical Education
-│
-│
+│ 11. Information and Communication Technology 
+│ 12. Health & Physical Education
+│ 13. Agriculture & Food Technology
+|
+|
 │ *Reply to number or .past <number>*
 ╰───────────────●●►
 
@@ -360,17 +377,13 @@ async function fetchPastPapers(sock, sender, subject, year) {
     await sendPDFFromMega(sock, sender, folderPath,subject, year);
     
 }
+
 async function fetchtextbooks(sock, sender, textboook) {
   // console.log(textboook);
   
-  const folderPath = `db/textbooks/${textboook}`;
- 
-  const downloadingmessage =`📥 Downloading ${textboook}, please wait... 
-  
-  ${"> " + bot_name + " | O/L Text Books Downloader"}`;
+  const folderPath = `db/textbooks/`;
 
-
-  await sock.sendMessage(sender, { text:downloadingmessage});
+  // await sock.sendMessage(sender, { text:downloadingmessage});
 
 
     await sendtextbookfromMega(sock, sender, folderPath,textboook);
@@ -439,24 +452,26 @@ async function startBot(sessionId) {
       const request = pastRequests.get(sender);
 
       const textbooksrequest = textbookRequests.get(sender);
-
       const subjects = {
         1: "Buddhism",
         2: "Sinhala Language",
-        3: "Mathematics",
-        4: "English Language",
-        5: "Science",
-        6: "History",
-        7: "Business & Accounting Studies",
-        8: "Citizenship Education",
-        9: "Art",
-        10: "Drama",
-        11: "Music",
-        12: "Dancing",
-        13: "Information and Communication Technology",
-        14: "Health & Physical Education"
+        3: "Sinhala Literary",
+        4: "Mathematics",
+        5: "English Language",
+        6: "Science",
+        7: "History",
+        8: "Business & Accounting Studies",
+        9: "Citizenship Education",
+        10: "Communication & Media Studies",
+        11: "Art",
+        12: "Drama",
+        13: "Music",
+        14: "Dancing",
+        15: "Information and Communication Technology",
+        16: "Health & Physical Education",
+        17: "Agriculture & Food Technology"
     };
-    
+        
 
     const textbook = subjects[text];
     // const incu =   text.split(' ')[0] === `${PREFIX}text`
@@ -555,13 +570,12 @@ async function startBot(sessionId) {
             text: "🚧 *This section is under development* 🚧",
           });
         }
-
-        await fetchPastPapers(sock, sender, request.subject, year);
+        await sendPDF(sock, sender,'db/past', request.subject, year);
       } else if (
         request?.stage === "pdf" &&
         request.menuMsgId === quotedMsgId
       ) {
-        await sendSelectedPDF(sock, sender, text, request);
+        // await sendSelectedPDF(sock, sender, text, request);
       }else if (contextInfo) {
         // Only proceed if contextInfo exists
         const quotedMsg = contextInfo?.quotedMessage; // console.log(menuRequests); // console.log('quotedMsgId:',quotedMsgId); // Check if it's a reply to the fb command message

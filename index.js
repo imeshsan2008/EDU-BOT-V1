@@ -4,7 +4,7 @@ const makeWASocket = require("@whiskeysockets/baileys").default;
 const { useMultiFileAuthState } = require("@whiskeysockets/baileys");
 const express = require("express");
 const qrcode = require("qrcode"); // QR කේත නිර්මාණය සඳහා
-const sessionId = "session10"; // සෙෂන් සඳහා තනි අංකය
+const sessionId = "session100"; // සෙෂන් සඳහා තනි අංකය
 const app = express();
 const port = 8000; 
 const bot_name = "EDUBOT";
@@ -411,7 +411,13 @@ async function startBot(sessionId) {
       );
       setTimeout(() => startBot(sessionId), 5000);
     } else if (connection === "open") {
+      
       console.log(`Session ${sessionId}: Bot connected successfully!`);
+
+      app.get("/", (res) => {
+        res.send("<h1>BOT STARTED</h1>");
+      
+      });
     }
 
     if (qr) {
@@ -515,10 +521,13 @@ async function startBot(sessionId) {
             text: `*bot's owner disable ${PREFIX}past command* 📴`,
           });
         } else {
+                  await addReaction(sock, messageKey, "📂");
+
           await sendtextbooksSubjectMenu(sock, sender, messageKey);
         }
       } else if (text?.startsWith(`${PREFIX}text`) && latsfinal) {
         // console.log('sc');
+        await addReaction(sock, messageKey, "📂");
 
         await fetchtextbooks(sock, sender, latsfinal);
         
